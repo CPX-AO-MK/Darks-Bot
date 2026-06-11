@@ -5,7 +5,7 @@ import json
 from flask import Flask
 from threading import Thread
 
-# 1. Configuração do Flask (o "servidor" que mantém o bot acordado)
+# --- ESTRUTURA DO SERVIDOR (NÃO REMOVER) ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -16,21 +16,29 @@ def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-# 2. Iniciar o servidor Flask numa Thread separada
 t = Thread(target=run_flask)
 t.start()
+# -------------------------------------------
 
-# 3. Configuração do Bot
+# Configurações do Bot
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# --- AQUI VÃO OS TEUS COMANDOS ---
+@bot.command()
+async def config_server(ctx):
+    # Insere aqui a lógica que tinhas antes para o comando !config_server
+    await ctx.send("Configurando o servidor...")
 
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} está online!")
 
-# 4. Iniciar o Bot
+# --- INICIALIZAÇÃO ---
 if __name__ == "__main__":
     token = os.environ.get('DISCORD_TOKEN')
-    bot.run(token)
+    if token:
+        bot.run(token)
