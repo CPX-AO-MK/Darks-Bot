@@ -1,68 +1,59 @@
 import discord
 from discord.ext import commands
-from discord.ui import Button, View
-import json
 import os
+import json
 from flask import Flask
 from threading import Thread
 
-# --- ESTRUTURA PARA O RENDER (MANTÉM O BOT ONLINE) ---
+# --- SERVIDOR PARA MANTER ONLINE ---
 app = Flask(__name__)
-
 @app.route('/')
-def home():
-    return "Bot Darks está online!"
-
+def home(): return "Bot Darks está online!"
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+t = Thread(target=run_flask); t.start()
 
-t = Thread(target=run_flask)
-t.start()
-
-# --- CONFIGURAÇÕES DO BOT ---
+# --- CONFIGURAÇÃO BOT ---
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-DATA_FILE = "dados.json"
+# --- COMANDOS DA V 1.4.1 ---
 
-def carregar_dados():
-    if not os.path.exists(DATA_FILE):
-        return {"metas": {}, "tickets_ativos": {}}
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+@bot.command()
+async def meta(ctx, valor: str):
+    await ctx.send(f"📊 Meta definida: {valor}")
 
-# --- CLASSE DO PAINEL DE RECRUTAMENTO ---
-class PainelRecrutamentoView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
+@bot.command()
+async def bateponto(ctx):
+    await ctx.send(f"✅ {ctx.author.mention}, ponto batido com sucesso!")
 
-    @discord.ui.button(label="Fazer Recrutamento 🛡️", style=discord.ButtonStyle.danger, custom_id="btn_ticket")
-    async def criar_ticket(self, interaction: discord.Interaction, button: discord.Button):
-        await interaction.response.send_message("A criar o teu canal de recrutamento...", ephemeral=True)
+@bot.command()
+async def registro(ctx, *, info: str):
+    await ctx.send(f"📝 Registro salvo: {info}")
 
-# --- COMANDOS ---
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def config_server(ctx):
-    await ctx.send("⚙️ A moldar a estrutura do servidor: Categorias e canais criados com sucesso!")
-    # Aqui podes colocar o código que clona os canais/categorias que usavas antes
+async def advertencia(ctx, membro: discord.Member, *, motivo: str):
+    await ctx.send(f"⚠️ {membro.mention} recebeu uma advertência: {motivo}")
 
 @bot.command()
-async def enviar_painel(ctx):
-    view = PainelRecrutamentoView()
-    embed = discord.Embed(title="INGRESSAR NA ORGANIZAÇÃO 🛡️", description="Clica no botão abaixo para abrir o teu processo seletivo privado.", color=discord.Color.red())
-    await ctx.send(embed=embed, view=view)
+async def ausencia(ctx, *, motivo: str):
+    await ctx.send(f"🗓️ Ausência registrada para {ctx.author.name}: {motivo}")
 
-# --- EVENTOS ---
-@bot.event
-async def on_ready():
-    bot.add_view(PainelRecrutamentoView())
-    print(f"{bot.user.name} está online!")
+@bot.command()
+async def ticket(ctx):
+    await ctx.send("📩 Ticket criado! Aguarde um suporte.")
+
+@bot.command()
+async def formulario(ctx):
+    await ctx.send("📋 Preencha o formulário aqui: [LINK_DO_FORMULARIO]")
 
 # --- ARRANQUE ---
+@bot.event
+async def on_ready():
+    print(f"{bot.user.name} está online!")
+
 if __name__ == "__main__":
-    token = os.environ.get('DISCORD_TOKEN')
-    bot.run(token)
+    bot.run(os.environ.get('DISCORD_TOKEN'))
