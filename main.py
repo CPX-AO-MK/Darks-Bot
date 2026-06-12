@@ -17,38 +17,58 @@ def run_flask():
 t = Thread(target=run_flask)
 t.start()
 
-# --- CONFIGURAÇÃO BOT ---
+import discord
+from discord.ext import commands
+import os
+
+# CONFIGURAÇÕES (SUBSTITUI PELOS TEUS IDs)
+CAT_RECRUTAMENTO_ID = 1514628973743702126
+CANAL_LOGS_PONTO_ID = 1514613721610321972
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- COMANDOS v1.4.1 ---
+# --- 1. SISTEMA DE PONTO (BOTÕES INTERATIVOS) ---
+class PontoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="ABRIR", style=discord.ButtonStyle.green, custom_id="abrir_ponto")
+    async def abrir(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Ponto iniciado!", ephemeral=True)
+        # Lógica para guardar o início (ex: num dicionário ou BD)
+
+    @discord.ui.button(label="FECHAR", style=discord.ButtonStyle.red, custom_id="fechar_ponto")
+    async def fechar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Ponto fechado! Total: 2 horas.", ephemeral=True)
+
+# --- 2. FORMULÁRIO INTERATIVO (PERGUNTA A PERGUNTA) ---
+class FormularioModal(discord.ui.Modal, title="Recrutamento RP"):
+    pergunta = discord.ui.TextInput(label="Pergunta 1: Como defines o teu RP?")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Resposta enviada!", ephemeral=True)
+        # Aqui o bot enviaria a pergunta 2, 3... e no final criaria o canal de log p/ ADM
+
+# --- COMANDOS PARA INICIAR OS PAINÉIS ---
 @bot.command()
-async def meta(ctx, valor: str): await ctx.send(f"📊 Meta definida: {valor}")
+async def setup_ponto(ctx):
+    embed = discord.Embed(title="⏰ Bate-Ponto", description="Usa os botões abaixo:")
+    await ctx.send(embed=embed, view=PontoView())
 
 @bot.command()
-async def bateponto(ctx): await ctx.send(f"✅ {ctx.author.mention}, ponto batido!")
+async def aplicar(ctx):
+    await ctx.send("Clica para iniciar o formulário:", view=FormularioStartView())
 
-@bot.command()
-async def registro(ctx, *, info: str): await ctx.send(f"📝 Registro salvo: {info}")
+class FormularioStartView(discord.ui.View):
+    @discord.ui.button(label="Iniciar Formulário", style=discord.ButtonStyle.blurple)
+    async def iniciar(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(FormularioModal())
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def advertencia(ctx, membro: discord.Member, *, motivo: str):
-    await ctx.send(f"⚠️ {membro.mention} advertido: {motivo}")
-
-@bot.command()
-async def ausencia(ctx, *, motivo: str): await ctx.send(f"🗓️ Ausência de {ctx.author.name}: {motivo}")
-
-@bot.command()
-async def ticket(ctx): await ctx.send("📩 Ticket criado! Aguarde.")
-
-@bot.command()
-async def formulario(ctx): await ctx.send("📋 Preencha: [LINK]")
-
-# --- INICIALIZAÇÃO ---
 @bot.event
-async def on_ready(): print(f"{bot.user.name} online!")
+async def on_ready():
+    bot.add_view(PontoView())
+    print("Sistema interativo pronto!")
 
-if __name__ == "__main__":
-    bot.run(os.environ.get('DISCORD_TOKEN'))
+bot.run(os.environ.get('DISCORD_TOKEN'))
